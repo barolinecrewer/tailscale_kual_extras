@@ -2,6 +2,8 @@
 
 This (very) simple repo allows you to connect your kindle remotely from anywhere using Tailscale VPN.
 
+It now also includes a small **KOReader** plugin that can connect, disconnect, and display whether the Kindle is currently connected to Tailscale.
+
 ## Prerequisites:
 
 1. Jailbroken Kindle. ([see](https://kindlemodding.gitbook.io/kindlemodding))
@@ -31,19 +33,47 @@ Having tested out on this device only, [YMMV](https://dictionary.cambridge.org/d
 
 3. Place the **tailscale** (not the `tailscale_kual`) folder into the `extensions` folder on your kindle.
 
-4. In the KUAL menu, tap **Install / Update Binaries**. This will download the latest `tailscale` and `tailscaled` ARM binaries directly onto the Kindle over Wi-Fi. Alternatively, download them manually for the `arm` architecture from [here](https://pkgs.tailscale.com/stable/#static) and place them in `extensions/tailscale/bin/` yourself.
+4. Optional for KOReader users: place `koreader/tailscale.koplugin` into `koreader/plugins/` on your Kindle so the plugin ends up at `/mnt/us/koreader/plugins/tailscale.koplugin/`.
 
-5. In the KUAL menu, open the **Start Tailscaled** submenu and pick the mode that suits your device (see [Tailscaled Modes](#tailscaled-modes) below). Status messages will appear on the Kindle screen as the daemon starts. Wait a few seconds, then run **Start Tailscale**. You can switch modes at any time without manually stopping tailscaled first — the start scripts handle that automatically.
+5. In the KUAL menu, tap **Install / Update Binaries**. This will download the latest `tailscale` and `tailscaled` ARM binaries directly onto the Kindle over Wi-Fi. Alternatively, download them manually for the `arm` architecture from [here](https://pkgs.tailscale.com/stable/#static) and place them in `extensions/tailscale/bin/` yourself.
 
-6. After this, tailscale should add the kindle to your [Machines](https://login.tailscale.com/admin/machines) page on tailscale [admin console](https://login.tailscale.com/welcome).
+6. In the KUAL menu, open the **Start Tailscaled** submenu and pick the mode that suits your device (see [Tailscaled Modes](#tailscaled-modes) below). Status messages will appear on the Kindle screen as the daemon starts. Wait a few seconds, then run **Start Tailscale**. You can switch modes at any time without manually stopping tailscaled first — the start scripts handle that automatically.
 
-7. Now you can see the (fairly static) IP address assigned by Tailscale for your kindle. You can use this ip to `ssh root@<kindle-ip>`!
+7. After this, tailscale should add the kindle to your [Machines](https://login.tailscale.com/admin/machines) page on tailscale [admin console](https://login.tailscale.com/welcome).
 
-8. **Recommended:** If you used the legacy `auth.key` path and the Kindle is not tagged, open the [Tailscale admin console](https://login.tailscale.com/admin/machines), find your Kindle, click the three-dot menu, and select **Disable key expiry**. If you used OAuth with `oauth.tags`, the Kindle is registered as a tagged device and key expiry is typically already disabled. In either case, once the device is registered successfully, it should reconnect on future boots without needing the `oauth.client_secret` or `auth.key` file again.
+8. Now you can see the (fairly static) IP address assigned by Tailscale for your kindle. You can use this ip to `ssh root@<kindle-ip>`!
 
-9. In case you want to restart fresh, remove the Kindle from the Tailscale admin console, stop `tailscale` and `tailscaled` via KUAL, then delete the state and log files created in `/mnt/us/extensions/tailscale/bin/`: `tailscaled.state`, `tailscale_start_log.txt`, `tailscaled_start_log.txt`, `tailscaled_proxy_start_log.txt`, `tailscaled_tun_start_log.txt`, `tailscale_stop_log.txt`, `tailscaled_stop_log.txt`, and `update_log.txt`. This will fully reset Tailscale's registration on your Kindle.
+9. **Recommended:** If you used the legacy `auth.key` path and the Kindle is not tagged, open the [Tailscale admin console](https://login.tailscale.com/admin/machines), find your Kindle, click the three-dot menu, and select **Disable key expiry**. If you used OAuth with `oauth.tags`, the Kindle is registered as a tagged device and key expiry is typically already disabled. In either case, once the device is registered successfully, it should reconnect on future boots without needing the `oauth.client_secret` or `auth.key` file again.
 
-10. Note: Make sure the kindle screen is on, else the kindle sleeps the wifi. You can also not connect to kindle via ssh when it is connected to PC using the cable.
+10. In case you want to restart fresh, remove the Kindle from the Tailscale admin console, stop `tailscale` and `tailscaled` via KUAL, then delete the state and log files created in `/mnt/us/extensions/tailscale/bin/`: `tailscaled.state`, `tailscale_start_log.txt`, `tailscaled_start_log.txt`, `tailscaled_proxy_start_log.txt`, `tailscaled_tun_start_log.txt`, `tailscale_stop_log.txt`, `tailscaled_stop_log.txt`, and `update_log.txt`. This will fully reset Tailscale's registration on your Kindle.
+
+11. Note: Make sure the kindle screen is on, else the kindle sleeps the wifi. You can also not connect to kindle via ssh when it is connected to PC using the cable.
+
+## KOReader Plugin
+
+The KOReader plugin is a thin UI wrapper around the existing shell scripts in `extensions/tailscale/bin/`. It does not start or stop `tailscaled`; it only manages the `tailscale` client and reports whether the Kindle is currently connected.
+
+Once installed in `/mnt/us/koreader/plugins/tailscale.koplugin/`, the plugin adds a **Tailscale** entry to KOReader's main menu with:
+
+- **Status**: shows whether the device is connected and, when connected, the current Tailscale IPs.
+- **Connect**: runs the same `start_tailscale.sh` script used by KUAL.
+- **Disconnect**: runs the same `stop_tailscale.sh` script used by KUAL.
+
+How it works:
+
+- The plugin reuses the same binaries and credential files as the KUAL extension under `/mnt/us/extensions/tailscale/bin/`.
+- **Connect** calls `start_tailscale.sh`, which first tries a normal `tailscale up --ssh` reconnect and falls back to OAuth or `auth.key` registration if needed.
+- **Disconnect** calls `stop_tailscale.sh`, which runs `tailscale down`.
+- **Status** checks `tailscale status --json` and treats the device as connected only when `BackendState` is `Running`. When connected, it also shows the output of `tailscale ip`.
+- The plugin does not manage `tailscaled`, install binaries, or edit credentials. Those parts still belong to the KUAL extension.
+
+Typical flow:
+
+1. Use KUAL once to install/update the Tailscale binaries.
+2. Use KUAL to start `tailscaled` in the mode you want.
+3. Use the KOReader plugin for day-to-day **Status**, **Connect**, and **Disconnect** actions.
+
+If **Connect** fails repeatedly from KOReader, `tailscaled` is probably not running yet. Start it once through KUAL, then use the KOReader plugin for day-to-day connect/disconnect checks.
 
 
 ## Tailscaled Modes
