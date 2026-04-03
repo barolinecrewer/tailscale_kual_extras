@@ -1,2 +1,8 @@
 tailscale/bin/tailscale
 tailscale/bin/tailscaled
+tailscale/bin/auth.key
+tailscale/bin/oauth.client_secret
+.DS_Store
+
+# used for my personal oauth
+ansible/

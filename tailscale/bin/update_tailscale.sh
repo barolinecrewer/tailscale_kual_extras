@@ -113,14 +113,24 @@ cp "$TSD_BIN" "$INSTALL_DIR/tailscaled" && chmod +x "$INSTALL_DIR/tailscaled" ||
 
 rm -rf "$TMP_DIR"
 
-# Create an empty auth.key placeholder on a fresh install
+# Create empty credential placeholders on a fresh install
 if [ ! -f "$INSTALL_DIR/auth.key" ]; then
     touch "$INSTALL_DIR/auth.key"
     echo "Created empty auth.key placeholder." >> "$LOG"
 fi
 
+if [ ! -f "$INSTALL_DIR/oauth.client_secret" ]; then
+    touch "$INSTALL_DIR/oauth.client_secret"
+    echo "Created empty oauth.client_secret placeholder." >> "$LOG"
+fi
+
+if [ ! -f "$INSTALL_DIR/oauth.tags" ]; then
+    touch "$INSTALL_DIR/oauth.tags"
+    echo "Created empty oauth.tags placeholder." >> "$LOG"
+fi
+
 if [ "$CURRENT" = "none" ]; then
-    log "Install complete: v$LATEST. Fill in auth.key before starting Tailscale."
+    log "Install complete: v$LATEST. Fill in oauth.* or auth.key before starting Tailscale."
 else
     log "Update complete: v$LATEST successfully installed."
 fi

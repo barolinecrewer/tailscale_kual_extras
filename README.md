@@ -24,7 +24,10 @@ Having tested out on this device only, [YMMV](https://dictionary.cambridge.org/d
 
 1. Download the repository.
 
-2. Fill the empty `auth.key` file, in the `tailscale/bin/` folder with your [Tailscale Auth Key](https://tailscale.com/kb/1085/auth-keys) to login.
+2. Pick one registration method:
+
+   - **OAuth (preferred):** Create a Tailscale OAuth client with the `auth_keys` scope and at least one allowed tag, then fill `tailscale/bin/oauth.client_secret` with the client secret and `tailscale/bin/oauth.tags` with one or more comma-separated tags such as `tag:kindle`.
+   - **Auth key (legacy fallback):** Fill `tailscale/bin/auth.key` with a [Tailscale Auth Key](https://tailscale.com/kb/1085/auth-keys).
 
 3. Place the **tailscale** (not the `tailscale_kual`) folder into the `extensions` folder on your kindle.
 
@@ -36,11 +39,12 @@ Having tested out on this device only, [YMMV](https://dictionary.cambridge.org/d
 
 7. Now you can see the (fairly static) IP address assigned by Tailscale for your kindle. You can use this ip to `ssh root@<kindle-ip>`!
 
-8. **Recommended:** In the [Tailscale admin console](https://login.tailscale.com/admin/machines), find your Kindle, click the three-dot menu, and select **Disable key expiry**. After this one-time step, the Kindle will reconnect to your tailnet on every reboot without needing the `auth.key` file again. The auth key is only needed for the very first registration.
+8. **Recommended:** If you used the legacy `auth.key` path and the Kindle is not tagged, open the [Tailscale admin console](https://login.tailscale.com/admin/machines), find your Kindle, click the three-dot menu, and select **Disable key expiry**. If you used OAuth with `oauth.tags`, the Kindle is registered as a tagged device and key expiry is typically already disabled. In either case, once the device is registered successfully, it should reconnect on future boots without needing the `oauth.client_secret` or `auth.key` file again.
 
 9. In case you want to restart fresh, remove the Kindle from the Tailscale admin console, stop `tailscale` and `tailscaled` via KUAL, then delete the state and log files created in `/mnt/us/extensions/tailscale/bin/`: `tailscaled.state`, `tailscale_start_log.txt`, `tailscaled_start_log.txt`, `tailscaled_proxy_start_log.txt`, `tailscaled_tun_start_log.txt`, `tailscale_stop_log.txt`, `tailscaled_stop_log.txt`, and `update_log.txt`. This will fully reset Tailscale's registration on your Kindle.
 
 10. Note: Make sure the kindle screen is on, else the kindle sleeps the wifi. You can also not connect to kindle via ssh when it is connected to PC using the cable.
+
 
 ## Tailscaled Modes
 
@@ -72,7 +76,7 @@ Runs `tailscaled` without the userspace-networking flag, relying on the kernel's
 
 The KUAL menu has a single **Install / Update Binaries** entry that handles both cases automatically:
 
-- **Fresh install** (no binaries present): fetches the latest release from the GitHub API, downloads `tailscale_{version}_arm.tgz` from `pkgs.tailscale.com`, installs `tailscale` and `tailscaled` into `extensions/tailscale/bin/`, and creates an empty `auth.key` placeholder if one is not already there.
+- **Fresh install** (no binaries present): fetches the latest release from the GitHub API, downloads `tailscale_{version}_arm.tgz` from `pkgs.tailscale.com`, installs `tailscale` and `tailscaled` into `extensions/tailscale/bin/`, and creates empty `oauth.client_secret`, `oauth.tags`, and `auth.key` placeholders if they are not already there.
 - **Already installed**: reads the current version, skips the download if already up to date, otherwise backs up the existing binaries as `*.bak` and installs the newer version.
 
 Status messages are shown on-screen as the script runs. Full progress and any errors are also written to `update_log.txt` in `extensions/tailscale/bin/`. The Kindle must have an active Wi-Fi connection.
