@@ -6,21 +6,24 @@ It now also includes a small **KOReader** plugin that can connect, disconnect, a
 
 ## Prerequisites:
 
+0. The [minimum kernel version reqirement](https://go.dev/wiki/MinimumRequirements) for [Go](https://go.dev/) (and hence [tailscale](https://github.com/tailscale/tailscale)) is `2.6.32`. You should check your kernel version via `uname -r` before proceeding.
 1. Jailbroken Kindle. ([see](https://kindlemodding.gitbook.io/kindlemodding))
 2. [KUAL](https://wiki.mobileread.com/wiki/KUAL) installed. ([see](https://kindlemodding.gitbook.io/kindlemodding/post-jailbreak/installing-kual-mrpi))
-3. [USBNetworking](https://www.mobileread.com/forums/showthread.php?t=225030) hack installed and [enabled](https://wiki.mobileread.com/wiki/USBNetwork).
-4. Set up ssh keys for ease of use.
+3. (Optional) [USBNetworking](https://www.mobileread.com/forums/showthread.php?t=225030) hack installed and [enabled](https://wiki.mobileread.com/wiki/USBNetwork).
+4. (Optional) Set up SSH keys for ease of use.
 
-## My Kindle:
+> [!NOTE]
+> SSH setup using USBNetworking is optional because Tailscale will be started using `--ssh`, which enables [Tailscale SSH](https://tailscale.com/docs/features/tailscale-ssh).
 
-I have a PaperWhite (7th Generation), referred to as [PW3](https://wiki.mobileread.com/wiki/Kindle_Serial_Numbers).
+## Unsupported devices:
 
-```
-[root@kindle root]# uname -a
-Linux kindle 3.0.35-lab126 #8 PREEMPT Tue Aug 1 12:49:59 UTC 2023 armv7l GNU/Linux
-```
+### Unmet kernel version requirements
 
-Having tested out on this device only, [YMMV](https://dictionary.cambridge.org/dictionary/english/ymmv).
+1. [Kindle Paperwhite (Gen 1) (PW)](https://github.com/mitanshu7/tailscale_kual/issues/24)
+2. [Kindle Keyboard (3rd Generation) (K3G)](https://github.com/mitanshu7/tailscale_kual/issues/19#issuecomment-4183681305)
+3. [Kindle 4 (K4)](https://github.com/mitanshu7/tailscale_kual/issues/19#issuecomment-4431271723)
+
+List of Amazon [Kindles](https://wiki.mobileread.com/wiki/Amazon_Kindle) and their [Serial Numbers](https://wiki.mobileread.com/wiki/Kindle_Serial_Numbers).
 
 ## Usage:
 
@@ -92,15 +95,22 @@ The proxy listen address defaults to `localhost:1055`. To use a different addres
 
 After starting tailscaled in this mode and bringing tailscale up, configure KOReader's network proxy:
 
-- Open KOReader → **Settings** → **Network** → **Proxy Settings**
-- Set type to **SOCKS5** (or HTTP)
-- Host: `localhost`, Port: `1055` (or whatever you set in `proxy.address`)
+- Open **KOReader** → _swipe down_ → **Settings** (gear icon) → **Network**
+- Long press **HTTP proxy** to edit the url
+- Enter `http://localhost:1055` (or whatever you set in `proxy.address`)
+- Don't forget to enable it!
 
 Once set, any request KOReader makes will go out through your tailnet.
 
 ### 3. Kernel TUN (if supported)
 
 Runs `tailscaled` without the userspace-networking flag, relying on the kernel's TUN/TAP module instead. This gives full system-wide outgoing connectivity but requires the `tun` kernel module to be present and loadable. **This is not available on all Kindle firmware versions** — if it fails silently, fall back to Proxy Mode.
+
+## `tailscale up` arguments (`up.args`)
+
+`start_tailscale.sh` passes the contents of the file `up.args` (in `extensions/tailscale/bin/`) to `tailscale up`, verbatim.  It should be a single line.
+
+Default: `--ssh` Example: `--ssh --accept-routes`
 
 ## Installing and Updating Tailscale Binaries
 
